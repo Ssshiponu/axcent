@@ -1,5 +1,0 @@
-openai>=1.0.0
-python-dotenv>=1.0.0
-
-[gemini]
-google-genai>=1.57.0
