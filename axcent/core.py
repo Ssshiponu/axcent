@@ -4,6 +4,24 @@ from .tools import function_to_schema
 from .llm import LLMBackend, OpenAIBackend
 
 class Agent:
+    """
+    An AI agent that can interact with the user and perform tasks using tools.
+
+    Attributes:
+
+        system_prompt (str): The system prompt to guide the agent's behavior.
+        backend (LLMBackend): The backend to use for generating responses.
+        history (List[Dict[str, Any]]): The conversation history.
+        tools (Dict[str, Callable]): The tools available to the agent.
+        tool_schemas (List[Dict[str, Any]]): The schemas of the tools.
+        usage_history (List[Dict[str, int]]): The usage history of the agent.
+
+    Methods:
+    
+        get_total_usage(): Returns the total token usage across all requests.
+        tool(func: Callable): Decorator to register a tool.
+        ask(query: str): Sends a query to the agent and returns the response.
+    """
     def __init__(self, system_prompt: str = "You are a helpful assistant.", backend: LLMBackend = None, model: str = "gpt-4o-mini"):
         self.system_prompt = system_prompt
         self.backend = backend or OpenAIBackend(model=model)

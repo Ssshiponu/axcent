@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="axcent",
-    version="0.1.0",
+    version="0.1.1",
     description="The easiest way to build AI agents in Python",
     long_description=open("README.md").read() if os.path.exists("README.md") else "",
     long_description_content_type="text/markdown",
