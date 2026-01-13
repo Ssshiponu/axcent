@@ -1,0 +1,13 @@
+site_name: Axcent Documentation
+site_description: The easiest way to build AI agents in Python.
+site_url: https://ssshiponu.github.io/axcent/
+repo_url: https://github.com/ssshiponu/axcent
+repo_name: Axcent
+
+theme:
+  name: readthedocs
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - API Reference: api.md
