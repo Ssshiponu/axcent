@@ -14,9 +14,9 @@ def __init__(self, system_prompt: str = "...", backend: LLMBackend = None, model
 
 ### `ask`
 ```python
-def ask(self, query: str) -> str
+def ask(self, query: str, media: Optional[List[Media]] = None) -> str
 ```
-Sends a user query to the agent. Handles the conversation loop including tool execution.
+Sends a user query to the agent with optional media attachments. Handles the conversation loop including tool execution.
 
 ### `tool`
 ```python
@@ -27,7 +27,7 @@ Decorator to register a function as a tool.
 
 ### `get_total_usage`
 ```python
-def get_total_usage(self) -> Dict[str, int]
+def get_total_usage() -> Dict[str, int]
 ```
 Returns a dictionary containing token usage statistics (prompt, completion, total, cached).
 
@@ -36,10 +36,35 @@ Returns a dictionary containing token usage statistics (prompt, completion, tota
 ## `axcent.llm`
 
 ### `OpenAIBackend`
-Standard backend for OpenAI-compatible APIs.
+Standard backend for OpenAI-compatible APIs with vision support.
 
 ### `GeminiBackend`
-Backend for Google's Gemini models using `google-genai` SDK.
+Backend for Google's Gemini models using `google-genai` SDK. Supports multimodal inputs.
 
 ### `MockBackend`
 Backend for testing without API calls.
+
+---
+
+## `axcent.media`
+
+### `Image`
+```python
+Image(path: str = None, url: str = None)
+```
+Wrapper for image content. Provide either a local `path` or a `url`.
+
+### `Audio`
+```python
+Audio(path: str = None, url: str = None)
+```
+Wrapper for audio content. Provide either a local `path` or a `url`.
+
+### `Transcriber`
+```python
+Transcriber(system_prompt: str, backend: LLMBackend = None)
+```
+Converts media (images/audio) to text using an LLM.
+
+- `transcribe(url: str) -> str`: Transcribe media from URL
+- `transcribe_file(path: str) -> str`: Transcribe media from local file

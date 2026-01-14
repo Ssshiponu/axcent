@@ -64,3 +64,39 @@ os.environ["OPENAI_BASE_URL"] = "https://openrouter.ai/api/v1"
 
 agent = Agent(system_prompt="You are a helper.")
 ```
+
+## Multimodal: Images & Audio
+
+Axcent supports multimodal inputs through the `Transcriber` class.
+
+### Using Transcriber as a Tool
+
+```python
+from axcent import Agent, Transcriber
+from axcent.llm import GeminiBackend
+
+agent = Agent(system_prompt="You are a helpful assistant.")
+
+@agent.tool
+def see_media(path: str) -> str:
+    """Analyze an image or audio file."""
+    transcriber = Transcriber(
+        system_prompt="Describe this media briefly.",
+        backend=GeminiBackend()
+    )
+    return transcriber.transcribe_file(path)
+
+response = agent.ask("What's in /home/user/photo.jpg?")
+```
+
+### Direct Media with ask()
+
+```python
+from axcent import Agent, Image
+
+agent = Agent(model="gpt-4o")  # Vision model
+img = Image(url="https://example.com/photo.jpg")
+# Or from file: img = Image(path="/path/to/image.jpg")
+
+response = agent.ask("What's in this image?", media=[img])
+```

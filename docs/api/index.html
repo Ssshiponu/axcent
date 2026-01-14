@@ -72,6 +72,16 @@
     </li>
         </ul>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#axcentmedia">axcent.media</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#image">Image</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#audio">Audio</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#transcriber">Transcriber</a>
+    </li>
+        </ul>
+    </li>
     </ul>
                 </li>
               </ul>
@@ -111,26 +121,44 @@
 <li><strong>model</strong>: The model name string (used if backend is default).</li>
 </ul>
 <h3 id="ask"><code>ask</code></h3>
-<pre><code class="language-python">def ask(self, query: str) -&gt; str
+<pre><code class="language-python">def ask(self, query: str, media: Optional[List[Media]] = None) -&gt; str
 </code></pre>
-<p>Sends a user query to the agent. Handles the conversation loop including tool execution.</p>
+<p>Sends a user query to the agent with optional media attachments. Handles the conversation loop including tool execution.</p>
 <h3 id="tool"><code>tool</code></h3>
 <pre><code class="language-python">@agent.tool
 def my_function(): ...
 </code></pre>
 <p>Decorator to register a function as a tool.</p>
 <h3 id="get_total_usage"><code>get_total_usage</code></h3>
-<pre><code class="language-python">def get_total_usage(self) -&gt; Dict[str, int]
+<pre><code class="language-python">def get_total_usage() -&gt; Dict[str, int]
 </code></pre>
 <p>Returns a dictionary containing token usage statistics (prompt, completion, total, cached).</p>
 <hr />
 <h2 id="axcentllm"><code>axcent.llm</code></h2>
 <h3 id="openaibackend"><code>OpenAIBackend</code></h3>
-<p>Standard backend for OpenAI-compatible APIs.</p>
+<p>Standard backend for OpenAI-compatible APIs with vision support.</p>
 <h3 id="geminibackend"><code>GeminiBackend</code></h3>
-<p>Backend for Google's Gemini models using <code>google-genai</code> SDK.</p>
+<p>Backend for Google's Gemini models using <code>google-genai</code> SDK. Supports multimodal inputs.</p>
 <h3 id="mockbackend"><code>MockBackend</code></h3>
 <p>Backend for testing without API calls.</p>
+<hr />
+<h2 id="axcentmedia"><code>axcent.media</code></h2>
+<h3 id="image"><code>Image</code></h3>
+<pre><code class="language-python">Image(path: str = None, url: str = None)
+</code></pre>
+<p>Wrapper for image content. Provide either a local <code>path</code> or a <code>url</code>.</p>
+<h3 id="audio"><code>Audio</code></h3>
+<pre><code class="language-python">Audio(path: str = None, url: str = None)
+</code></pre>
+<p>Wrapper for audio content. Provide either a local <code>path</code> or a <code>url</code>.</p>
+<h3 id="transcriber"><code>Transcriber</code></h3>
+<pre><code class="language-python">Transcriber(system_prompt: str, backend: LLMBackend = None)
+</code></pre>
+<p>Converts media (images/audio) to text using an LLM.</p>
+<ul>
+<li><code>transcribe(url: str) -&gt; str</code>: Transcribe media from URL</li>
+<li><code>transcribe_file(path: str) -&gt; str</code>: Transcribe media from local file</li>
+</ul>
               
             </div>
           </div><footer>

@@ -58,6 +58,14 @@
     </li>
         </ul>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#multimodal-images-audio">Multimodal: Images &amp; Audio</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#using-transcriber-as-a-tool">Using Transcriber as a Tool</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#direct-media-with-ask">Direct Media with ask()</a>
+    </li>
+        </ul>
+    </li>
     </ul>
                 </li>
               </ul>
@@ -137,6 +145,34 @@ os.environ[&quot;OPENAI_API_KEY&quot;] = &quot;sk-or-...&quot;
 os.environ[&quot;OPENAI_BASE_URL&quot;] = &quot;https://openrouter.ai/api/v1&quot;
 
 agent = Agent(system_prompt=&quot;You are a helper.&quot;)
+</code></pre>
+<h2 id="multimodal-images-audio">Multimodal: Images &amp; Audio</h2>
+<p>Axcent supports multimodal inputs through the <code>Transcriber</code> class.</p>
+<h3 id="using-transcriber-as-a-tool">Using Transcriber as a Tool</h3>
+<pre><code class="language-python">from axcent import Agent, Transcriber
+from axcent.llm import GeminiBackend
+
+agent = Agent(system_prompt=&quot;You are a helpful assistant.&quot;)
+
+@agent.tool
+def see_media(path: str) -&gt; str:
+    &quot;&quot;&quot;Analyze an image or audio file.&quot;&quot;&quot;
+    transcriber = Transcriber(
+        system_prompt=&quot;Describe this media briefly.&quot;,
+        backend=GeminiBackend()
+    )
+    return transcriber.transcribe_file(path)
+
+response = agent.ask(&quot;What's in /home/user/photo.jpg?&quot;)
+</code></pre>
+<h3 id="direct-media-with-ask">Direct Media with ask()</h3>
+<pre><code class="language-python">from axcent import Agent, Image
+
+agent = Agent(model=&quot;gpt-4o&quot;)  # Vision model
+img = Image(url=&quot;https://example.com/photo.jpg&quot;)
+# Or from file: img = Image(path=&quot;/path/to/image.jpg&quot;)
+
+response = agent.ask(&quot;What's in this image?&quot;, media=[img])
 </code></pre>
               
             </div>
