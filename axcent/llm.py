@@ -106,7 +106,46 @@ class GeminiBackend(LLMBackend):
             if role == "system":
                 system_instruction = content
             elif role == "user":
-                contents.append({"role": "user", "parts": [{"text": content}]})
+                # Handle multimodal content
+                parts = []
+                if isinstance(content, str):
+                    parts.append({"text": content})
+                elif isinstance(content, list):
+                    # Multimodal content list (OpenAI format -> Gemini format)
+                    for item in content:
+                        item_type = item.get("type", "")
+                        if item_type == "text":
+                            parts.append({"text": item["text"]})
+                        elif item_type == "image_url":
+                            image_url = item["image_url"]["url"]
+                            if image_url.startswith("data:"):
+                                # Data URI - extract base64
+                                header, b64_data = image_url.split(",", 1)
+                                mime_type = header.split(":")[1].split(";")[0]
+                                parts.append({
+                                    "inline_data": {
+                                        "mime_type": mime_type,
+                                        "data": b64_data
+                                    }
+                                })
+                            else:
+                                # URL - Gemini can't directly use URLs, need to describe
+                                parts.append({"text": f"[Image at URL: {image_url}]"})
+                        elif item_type == "input_audio":
+                            audio_data = item["input_audio"]
+                            if "data" in audio_data:
+                                mime_type = f"audio/{audio_data.get('format', 'mp3')}"
+                                parts.append({
+                                    "inline_data": {
+                                        "mime_type": mime_type,
+                                        "data": audio_data["data"]
+                                    }
+                                })
+                            elif "url" in audio_data:
+                                parts.append({"text": f"[Audio at URL: {audio_data['url']}]"})
+                else:
+                    parts.append({"text": str(content) if content else ""})
+                contents.append({"role": "user", "parts": parts})
             elif role == "assistant":
                 parts = []
                 if content:
