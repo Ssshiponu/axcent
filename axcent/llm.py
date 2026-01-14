@@ -9,7 +9,7 @@ class LLMBackend(ABC):
         pass
 
 class OpenAIBackend(LLMBackend):
-    def __init__(self, api_key: str = None, model: str = "gpt-4o-mini", base_url: str = None):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = "gpt-4o-mini", base_url: Optional[str] = None):
         import openai
         self.client = openai.OpenAI(
             api_key=api_key or os.environ.get("OPENAI_API_KEY"),
@@ -42,7 +42,7 @@ class MockBackend(LLMBackend):
         # Simple mock response object mimicking OpenAI's structure
         class MockChoice:
             def __init__(self, content):
-                self.message = type('obj', (object,), {'content': content, 'tool_calls': None})
+                self.message = type('obj', (object,), {'content': content, 'tool_calls': None, 'role': 'assistant'})
 
         class MockResponse:
             def __init__(self, content):
@@ -51,19 +51,19 @@ class MockBackend(LLMBackend):
         return MockResponse(self.responses.pop(0) if self.responses else "No more mock responses.")
 
 class GeminiBackend(LLMBackend):
-    def __init__(self, api_key: str = None, model: str = "gemini-2.5-flash"):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = "gemini-2.5-flash"):
         from google import genai
-        self.client = genai.Client(api_key=api_key or os.environ.get("GEMINI_API_KEY"))
-        if not self.client.api_key:
-             # The new SDK might pick it up from env automatically, but let's be safe
-             if not os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
-                  raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY not found.")
+        actual_key = api_key or os.environ.get("GEMINI_API_KEY")
+        if not actual_key:
+            raise ValueError("GEMINI_API_KEY not found.")
+        
+        self.client = genai.Client(api_key=actual_key)
         self.model_name = model
 
     def _convert_tools(self, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Converts OpenAI tool schemas to Gemini V2 tool definitions."""
         if not tools:
-            return None
+            return []
         
         # The new SDK supports providing a list of tool configurations.
         # It can accept raw function callables, or a Tool object.
@@ -88,6 +88,8 @@ class GeminiBackend(LLMBackend):
         return [{"function_declarations": function_declarations}]
 
     def chat(self, messages: List[Dict[str, Any]], tools: Optional[List[Dict[str, Any]]] = None) -> Any:
+        # Use None as default to avoid mutable default argument warning
+        tools = tools or []
         gemini_tools = self._convert_tools(tools)
         
         # Convert History
@@ -111,10 +113,18 @@ class GeminiBackend(LLMBackend):
                     parts.append({"text": content})
                 if "tool_calls" in msg:
                     for tc in msg["tool_calls"]:
+                        # Handle both dict (from history/persistence) and object (direct from API)
+                        if isinstance(tc, dict):
+                            fn_name = tc["function"]["name"]
+                            fn_args = tc["function"]["arguments"]
+                        else:
+                            fn_name = tc.function.name
+                            fn_args = tc.function.arguments
+                            
                         parts.append({
                             "function_call": {
-                                "name": tc.function.name,
-                                "args": json.loads(tc.function.arguments)
+                                "name": fn_name,
+                                "args": json.loads(fn_args) if isinstance(fn_args, str) else fn_args
                             }
                         })
                 contents.append({"role": "model", "parts": parts})
@@ -131,7 +141,10 @@ class GeminiBackend(LLMBackend):
                 for m in messages:
                     if m['role'] == 'assistant' and 'tool_calls' in m:
                         for tc in m['tool_calls']:
-                            tool_map[tc.id] = tc.function.name
+                            if isinstance(tc, dict):
+                                tool_map[tc['id']] = tc['function']['name']
+                            else:
+                                tool_map[tc.id] = tc.function.name
                 
                 fname = tool_map.get(msg.get('tool_call_id'), 'unknown')
                 
@@ -153,7 +166,7 @@ class GeminiBackend(LLMBackend):
         config = types.GenerateContentConfig(
             system_instruction=system_instruction,
             tools=gemini_tools,
-            temperature=0.7, # Default setup
+            temperature=1, # Default setup
         )
 
         response = self.client.models.generate_content(

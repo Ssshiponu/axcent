@@ -2,6 +2,7 @@ import json
 from typing import Callable, Dict, List, Any, Optional
 from .tools import function_to_schema
 from .llm import LLMBackend, OpenAIBackend
+from .history import ConversationHistory
 
 class Agent:
     """
@@ -22,13 +23,20 @@ class Agent:
         tool(func: Callable): Decorator to register a tool.
         ask(query: str): Sends a query to the agent and returns the response.
     """
-    def __init__(self, system_prompt: str = "You are a helpful assistant.", backend: LLMBackend = None, model: str = "gpt-4o-mini"):
+    def __init__(self, system_prompt: str = "You are a helpful assistant.", backend: Optional[LLMBackend] = None, model: str = "gpt-4o", persist_history: bool = False, history_file: str = "conv.json", max_history: Optional[int] = None):
         self.system_prompt = system_prompt
         self.backend = backend or OpenAIBackend(model=model)
-        self.history: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt}]
+        self.history: ConversationHistory = ConversationHistory(persist=persist_history, filepath=history_file, max_messages=max_history)
         self.tools: Dict[str, Callable] = {}
         self.tool_schemas: List[Dict[str, Any]] = []
         self.usage_history: List[Dict[str, int]] = []
+
+        # Ensure system prompt is present
+        if not self.history or self.history[0].get("role") != "system":
+            self.history.insert(0, {"role": "system", "content": self.system_prompt})
+
+
+
 
     def get_total_usage(self) -> Dict[str, int]:
         """Returns the total token usage across all requests."""
@@ -57,7 +65,7 @@ class Agent:
         while True:
             # Sort tools by name to ensure consistent order for OpenAI prompt caching
             current_tools = sorted(self.tool_schemas, key=lambda x: x['function']['name']) if self.tool_schemas else None
-            response = self.backend.chat(self.history, tools=current_tools)
+            response = self.backend.chat(self.history.data, tools=current_tools)
             message = response.choices[0].message
             
             # Track Usage
@@ -75,13 +83,23 @@ class Agent:
                 
                 self.usage_history.append(usage_data)
             
-            # Convert message to dict to ensure compatibility with next API call
+            # Convert message to dict to ensure compatibility with next API call and persistence
             message_dict = {
                 "role": message.role,
                 "content": message.content,
             }
             if message.tool_calls:
-                 message_dict["tool_calls"] = message.tool_calls
+                 # OpenAI tool_calls are objects, need to be converted for JSON serialization
+                 message_dict["tool_calls"] = [
+                     {
+                         "id": tc.id,
+                         "type": tc.type,
+                         "function": {
+                             "name": tc.function.name,
+                             "arguments": tc.function.arguments
+                         }
+                     } for tc in message.tool_calls
+                 ]
             
             self.history.append(message_dict)
 
