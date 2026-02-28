@@ -187,16 +187,20 @@ class GeminiBackend(LLMBackend):
                 
                 fname = tool_map.get(msg.get('tool_call_id'), 'unknown')
                 
+                function_response_obj = {
+                    "name": fname,
+                    "response": {"result": content}
+                }
+                
+                # If tool_call_id is present, pass it back so the SDK can match it
+                actual_id = msg.get('tool_call_id')
+                if actual_id and not actual_id.startswith('call_unknown'):
+                     function_response_obj["id"] = actual_id
+
                 contents.append({
-                    "role": "user", # In many google apis, function response is user-side.
-                    # HOWEVER, verify SDK V2. 
-                    # Docs say: function responses are part of the conversation.
-                    # Let's try 'user' role with 'function_response' part.
+                    "role": "user",
                     "parts": [{
-                        "function_response": {
-                            "name": fname,
-                            "response": {"result": content}
-                        }
+                        "function_response": function_response_obj
                     }]
                 })
 
@@ -239,13 +243,16 @@ class GeminiBackend(LLMBackend):
                 if part.text:
                     content_text = (content_text or "") + part.text
                 if part.function_call:
-                    tool_calls.append(type('obj', (object,), {
-                        'id': 'call_' + part.function_call.name, 
-                        'function': type('obj', (object,), {
-                            'name': part.function_call.name,
-                            'arguments': json.dumps(part.function_call.args)
-                        })
-                    }))
+                    func_mock = type('obj', (object,), {
+                        'name': part.function_call.name,
+                        'arguments': json.dumps(part.function_call.args)
+                    })()
+                    tc_mock = type('obj', (object,), {
+                        'id': 'call_' + part.function_call.name,
+                        'type': 'function',
+                        'function': func_mock
+                    })()
+                    tool_calls.append(tc_mock)
 
         # Usage
         usage = None
