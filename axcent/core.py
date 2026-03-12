@@ -90,16 +90,24 @@ class Agent:
             }
             if message.tool_calls:
                  # OpenAI tool_calls are objects, need to be converted for JSON serialization
-                 message_dict["tool_calls"] = [
-                     {
+                 tool_calls_dicts = []
+                 for tc in message.tool_calls:
+                     tc_dict = {
                          "id": tc.id,
                          "type": tc.type,
                          "function": {
                              "name": tc.function.name,
                              "arguments": tc.function.arguments
                          }
-                     } for tc in message.tool_calls
-                 ]
+                     }
+                     if hasattr(tc, 'thought_signature') and tc.thought_signature:
+                         import base64
+                         if isinstance(tc.thought_signature, bytes):
+                             tc_dict['thought_signature'] = base64.b64encode(tc.thought_signature).decode('utf-8')
+                         else:
+                             tc_dict['thought_signature'] = tc.thought_signature
+                     tool_calls_dicts.append(tc_dict)
+                 message_dict["tool_calls"] = tool_calls_dicts
             
             self.history.append(message_dict)
 

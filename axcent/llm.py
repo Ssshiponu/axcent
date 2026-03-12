@@ -156,16 +156,22 @@ class GeminiBackend(LLMBackend):
                         if isinstance(tc, dict):
                             fn_name = tc["function"]["name"]
                             fn_args = tc["function"]["arguments"]
+                            tsig = tc.get("thought_signature")
                         else:
                             fn_name = tc.function.name
                             fn_args = tc.function.arguments
+                            tsig = getattr(tc, "thought_signature", None)
                             
-                        parts.append({
+                        part_dict = {
                             "function_call": {
                                 "name": fn_name,
                                 "args": json.loads(fn_args) if isinstance(fn_args, str) else fn_args
                             }
-                        })
+                        }
+                        if tsig:
+                            part_dict["thought_signature"] = tsig
+                            
+                        parts.append(part_dict)
                 contents.append({"role": "model", "parts": parts})
             elif role == "tool":
                 # Find valid previous call or just append. 
@@ -247,11 +253,16 @@ class GeminiBackend(LLMBackend):
                         'name': part.function_call.name,
                         'arguments': json.dumps(part.function_call.args)
                     })()
-                    tc_mock = type('obj', (object,), {
+                    
+                    tc_kwargs = {
                         'id': 'call_' + part.function_call.name,
                         'type': 'function',
                         'function': func_mock
-                    })()
+                    }
+                    if hasattr(part, 'thought_signature') and part.thought_signature:
+                        tc_kwargs['thought_signature'] = part.thought_signature
+                        
+                    tc_mock = type('obj', (object,), tc_kwargs)()
                     tool_calls.append(tc_mock)
 
         # Usage
