@@ -55,12 +55,39 @@ class Agent:
         self.tool_schemas.append(schema)
         return func
 
-    def ask(self, query: str) -> str:
+    def ask(self, query: str, media: Optional[List[Any]] = None) -> str:
         """
         Sends a query to the agent and returns the response.
         Handles tool calls automatically.
         """
-        self.history.append({"role": "user", "content": query})
+        content: Any = query
+        if media:
+            content = [{"type": "text", "text": query}]
+            for m in media:
+                if m.type == "image":
+                    if m.data:
+                        content.append({
+                            "type": "image_url",
+                            "image_url": {"url": m.to_data_uri()}
+                        })
+                    elif m.url:
+                        content.append({
+                            "type": "image_url",
+                            "image_url": {"url": m.url}
+                        })
+                elif m.type == "audio":
+                    if m.data:
+                        content.append({
+                            "type": "input_audio",
+                            "input_audio": {"data": m.to_base64(), "format": m.mime_type.split("/")[-1]}
+                        })
+                    elif m.url:
+                        content.append({
+                            "type": "input_audio",
+                            "input_audio": {"url": m.url}
+                        })
+
+        self.history.append({"role": "user", "content": content})
         
         while True:
             # Sort tools by name to ensure consistent order for OpenAI prompt caching

@@ -69,37 +69,37 @@ class Media:
 class Image(Media):
     """Image media type for vision capabilities."""
     
-    def __init__(self, path: Optional[str] = None, url: Optional[str] = None):
-        if path and url:
-            raise ValueError("Provide either path or url, not both.")
-        if not path and not url:
-            raise ValueError("Provide either path or url.")
+    def __init__(self, path: Optional[str] = None, url: Optional[str] = None, data: Optional[bytes] = None, mime_type: str = "image/jpeg"):
+        if sum(bool(x) for x in (path, url, data)) != 1:
+            raise ValueError("Provide exactly one of: path, url, or data.")
         
         if path:
             media = Media.from_file(path, "image")
             super().__init__(type="image", mime_type=media.mime_type, data=media.data, url=None)
-        else:
-            assert url is not None
+        elif url:
             media = Media.from_url(url, "image")
             super().__init__(type="image", mime_type=media.mime_type, data=None, url=url)
+        else:
+            assert data is not None
+            super().__init__(type="image", mime_type=mime_type, data=data, url=None)
 
 
 class Audio(Media):
     """Audio media type for audio understanding capabilities."""
     
-    def __init__(self, path: Optional[str] = None, url: Optional[str] = None):
-        if path and url:
-            raise ValueError("Provide either path or url, not both.")
-        if not path and not url:
-            raise ValueError("Provide either path or url.")
+    def __init__(self, path: Optional[str] = None, url: Optional[str] = None, data: Optional[bytes] = None, mime_type: str = "audio/mp3"):
+        if sum(bool(x) for x in (path, url, data)) != 1:
+            raise ValueError("Provide exactly one of: path, url, or data.")
         
         if path:
             media = Media.from_file(path, "audio")
             super().__init__(type="audio", mime_type=media.mime_type, data=media.data, url=None)
-        else:
-            assert url is not None
+        elif url:
             media = Media.from_url(url, "audio")
             super().__init__(type="audio", mime_type=media.mime_type, data=None, url=url)
+        else:
+            assert data is not None
+            super().__init__(type="audio", mime_type=mime_type, data=data, url=None)
 
 
 class Transcriber:
